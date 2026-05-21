@@ -9,10 +9,13 @@ st.set_page_config(
     layout="centered"
 )
 
+# Initialize Session State Memory so it never sends 'None' to Python
+if "step_memory" not in st.session_state:
+    st.session_state.step_memory = 0
+
 # --- 2. INJECT MASSIVE ULTRA-GLOW CSS CUSTOM DECORATIONS ---
 st.markdown("""
     <style>
-    /* Global Background and Cyberpunk Fonts */
     @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Share+Tech+Mono&display=swap');
     
     .stApp {
@@ -22,7 +25,6 @@ st.markdown("""
         background-size: 20px 20px;
     }
     
-    /* Glowing Titles */
     h1, h2, h3 {
         font-family: 'Orbitron', sans-serif !important;
         letter-spacing: 2px;
@@ -37,7 +39,6 @@ st.markdown("""
         margin-bottom: 0px;
     }
     
-    /* Glassmorphism Containers with Neon Borders */
     .glass-card {
         background: rgba(15, 15, 30, 0.65);
         backdrop-filter: blur(10px);
@@ -50,7 +51,6 @@ st.markdown("""
         font-family: 'Share Tech Mono', monospace;
     }
     
-    /* Interactive Custom Badges */
     .badge {
         display: inline-block;
         padding: 5px 12px;
@@ -73,7 +73,6 @@ st.markdown("""
         border-color: #333;
     }
     
-    /* Custom Stylized Progress Bar */
     .stProgress > div > div > div > div {
         background-image: linear-gradient(90deg, #b026ff, #00ffff) !important;
         box-shadow: 0 0 10px #00ffff;
@@ -105,18 +104,16 @@ with st.sidebar:
         ["Barefoot / Light Rags (1.0x)", "Netherite Armor / Heavy Boots (1.3x)", "Carrying Diamond Stash (1.5x)"]
     )
     
-    # Extract multiplier value based on selection
     multiplier = 1.0
     if "1.3x" in inventory_load: multiplier = 1.3
     elif "1.5x" in inventory_load: multiplier = 1.5
 
 # --- 5. THE RADICAL HARDWARE PEDOMETER INTERFACE ---
-tracker_html = """
+tracker_html = f"""
 <div style="background: rgba(6, 6, 14, 0.85); padding: 25px; border-radius: 16px; text-align: center; font-family: 'Orbitron', sans-serif; border: 2px solid #00ffff; box-shadow: 0 0 20px rgba(0, 255, 255, 0.2), inset 0 0 10px rgba(0, 255, 255, 0.1);">
     <div style="font-size: 11px; color: #00ffff; letter-spacing: 4px; margin-bottom: 5px;">MOTION ENGINE STATUS: <span id="status" style="color: #ff3333; text-shadow: 0 0 8px #ff3333;">STANDBY</span></div>
     
-    <!-- Central Glowing Step Matrix -->
-    <div id="step-display" style="font-size: 72px; font-weight: 900; color: #ffffff; margin: 10px 0; text-shadow: 0 0 15px #00ffff, 0 0 30px #b026ff;">0</div>
+    <div id="step-display" style="font-size: 72px; font-weight: 900; color: #ffffff; margin: 10px 0; text-shadow: 0 0 15px #00ffff, 0 0 30px #b026ff;">{st.session_state.step_memory}</div>
     <div style="font-family: 'Share Tech Mono', monospace; color: #888; font-size: 13px; letter-spacing: 2px; margin-bottom: 15px;">TOTAL MOTION IMPULSES CALIBRATED</div>
     
     <button id="perm-btn" style="padding: 12px 30px; font-size: 14px; font-family: 'Orbitron', sans-serif; font-weight: bold; background: transparent; color: #00ffff; border: 2px solid #00ffff; border-radius: 8px; cursor: pointer; box-shadow: 0 0 10px rgba(0,255,255,0.3); transition: all 0.3s ease;">
@@ -125,15 +122,14 @@ tracker_html = """
 </div>
 
 <script>
-    let pulseCount = 0;
+    let pulseCount = {st.session_state.step_memory};
     let baseline = 0;
-    const triggerGap = 12.0; // Dynamic threshold calculation
+    const triggerGap = 12.0;
     
     const display = document.getElementById('step-display');
     const button = document.getElementById('perm-btn');
     const systemStatus = document.getElementById('status');
 
-    // Button Hover Effects
     button.onmouseover = function() { this.style.background = '#00ffff'; this.style.color = '#000'; };
     button.onmouseout = function() { this.style.background = 'transparent'; this.style.color = '#00ffff'; };
 
@@ -177,9 +173,14 @@ tracker_html = """
 """
 
 # Render JavaScript Core Pedometer
-current_steps = components.html(tracker_html, height=220)
-if current_steps is None:
-    current_steps = 0
+js_data = components.html(tracker_html, height=220)
+
+# If the JavaScript returns a new step number, save it into our memory card
+if js_data is not None:
+    st.session_state.step_memory = int(js_data)
+
+# Assign current steps safely from memory (guaranteed to be an integer)
+current_steps = st.session_state.step_memory
 
 # --- 6. RPG LEVEL & STAT ENGINE ---
 if current_steps < 50:
@@ -193,7 +194,6 @@ elif current_steps < 4000:
 else:
     rank, hex_color, title_desc = "LIMITLESS GOD 🌀", "#b026ff", "Infinite step capacity reached! Reality warped."
 
-# Render RPG Rank Unit
 st.markdown(f"""
 <div class="glass-card" style="border-color: {hex_color}; box-shadow: 0 0 15px {hex_color}40;">
     <div style="font-size:12px; color:#888; letter-spacing:1px;">CURRENT MATRICULATED RANK</div>
@@ -202,7 +202,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# Main progress bar
 progress_pct = min(float(current_steps) / float(goal), 1.0)
 st.progress(progress_pct)
 st.markdown(f"<p style='text-align:right; font-family:\"Share Tech Mono\", monospace; color:#00ffff; margin-top:-10px;'>{int(progress_pct*100)}% TOWARD GOAL MAP</p>", unsafe_allow_html=True)
@@ -210,8 +209,7 @@ st.markdown(f"<p style='text-align:right; font-family:\"Share Tech Mono\", monos
 # --- 7. HARDWARE ANALYTICS GRID ---
 st.markdown("<h3 style='color:#00ffff; font-size:16px;'>📊 VIRTUAL BIOMETRIC HUD</h3>", unsafe_allow_html=True)
 
-# Metric computations
-distance_km = (current_steps * 0.6) / 1000  # Default 0.6m per step base
+distance_km = (current_steps * 0.6) / 1000  
 calories_base = current_steps * 0.04 * multiplier
 
 col1, col2, col3 = st.columns(3)
@@ -223,7 +221,6 @@ with col3:
     st.metric(label="🔥 Energy Vented", value=f"{calories_base:.1f} kCal")
 
 # --- 8. ADVANCED INTERACTIVE ADAPTING DECORATIONS ---
-# Fuel Burn Calculator Visualizer
 st.markdown("""
 <div class="glass-card">
     <div style="color:#00ffff; font-size:14px; margin-bottom:10px; font-weight:bold; letter-spacing:1px;">🍔 FOOD CALORIE DEEP BURN DATA</div>
@@ -236,13 +233,11 @@ st.write(f"🔹 **Pizza Slices vaporized:** `{pizza_slices:.2f}` slices fully bu
 st.write(f"🔹 **Energy generated:** Enough kinetic force to forge `{diamond_swords_crafted}` Diamond Swords.")
 st.markdown("</div>", unsafe_allow_html=True)
 
-# Achievement Badge Hall
 st.markdown("""
 <div class="glass-card">
     <div style="color:#b026ff; font-size:14px; margin-bottom:10px; font-weight:bold; letter-spacing:1px;">🏆 ACHIEVEMENT TIER VAULT</div>
 """, unsafe_allow_html=True)
 
-# Inline logic to change badge css classes based on data
 b1 = "unlocked" if current_steps >= 1 else "locked"
 b2 = "unlocked" if current_steps >= 100 else "locked"
 b3 = "unlocked" if current_steps >= 1000 else "locked"
@@ -256,7 +251,6 @@ st.markdown(f"""
 </div>
 """, unsafe_allow_html=True)
 
-# --- 9. WIN CONDITION ---
 if current_steps >= goal:
     st.balloons()
     st.markdown("""
